@@ -31,6 +31,7 @@ from capa.helpers import (
     get_file_taste,
     get_format_from_extension,
 )
+from capa.exceptions import UnsupportedFormatError
 from capa.features.common import (
     FORMAT_ELF,
     FORMAT_SC32,
@@ -173,6 +174,27 @@ def test_get_format_from_extension():
     assert get_format_from_extension(Path("sample.BinExport2")) == FORMAT_BINEXPORT2
     assert get_format_from_extension(Path("sample.bndb")) == FORMAT_BINJA_DB
     assert get_format_from_extension(Path("sample.exe")) == FORMAT_UNKNOWN
+
+
+@pytest.mark.parametrize(
+    "name,content",
+    [
+        ("empty.log", b""),
+        ("garbage.log", b"hello"),
+        ("garbage.log.gz", b"hello"),
+        ("garbage.zip", b"hello"),
+        ("garbage.json", b"not json"),
+        ("garbage.json.gz", b"not json"),
+    ],
+)
+def test_get_auto_format_unreadable_report(tmp_path, name, content):
+    # files with a report extension that aren't actually readable reports
+    # should be reported as an unsupported format, rather than crash.
+    sample = tmp_path / name
+    sample.write_bytes(content)
+    assert get_format_from_extension(sample) == FORMAT_UNKNOWN
+    with pytest.raises(UnsupportedFormatError):
+        capa.helpers.get_auto_format(sample)
 
 
 def test_get_file_taste_reads_first_bytes(tmp_path):

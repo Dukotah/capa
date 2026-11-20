@@ -18,6 +18,7 @@
 
 - fix: elffile: skip section headers with a missing sh_link target @Henglie #3209
 - rules: do not write the ruleset cache when enable_cache is false #3223
+- helpers: report an unsupported format instead of crashing on unreadable .log/.zip/.json report files
 
 ### capa Explorer Web
 

@@ -23,7 +23,7 @@ import contextlib
 import importlib.util
 from typing import BinaryIO, Iterator, NoReturn
 from pathlib import Path
-from zipfile import ZipFile
+from zipfile import ZipFile, BadZipFile
 from datetime import datetime
 
 import msgspec.json
@@ -198,6 +198,16 @@ def load_one_jsonl_from_path(jsonl_path: Path):
 
 
 def get_format_from_report(sample: Path) -> str:
+    try:
+        return _get_format_from_report(sample)
+    except (msgspec.DecodeError, BadZipFile, StopIteration, EOFError, UnicodeDecodeError) as e:
+        # not a report we can read (empty, truncated, or not actually JSON/JSONL/ZIP),
+        # so let the caller report an unsupported format rather than crash.
+        logger.debug("failed to read %s as a sandbox report: %s", sample, e)
+        return FORMAT_UNKNOWN
+
+
+def _get_format_from_report(sample: Path) -> str:
     if sample.name.endswith((".log", ".log.gz")):
         line = load_one_jsonl_from_path(sample)
         if "Plugin" in line:
